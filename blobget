@@ -1,0 +1,58 @@
+   IConfiguration _configuration;
+        public ValuesController(IConfiguration configuration)
+        {
+            _configuration=configuration;
+        }
+
+        [HttpGet("GetData")]
+        public async Task<JsonResult> GetData() 
+        { 
+            String containername = "smbvideolibrary";
+            String connectionstring =_configuration.GetConnectionString("azurestorage");
+            connectionstring = "DefaultEndpointsProtocol=https;AccountName=smbvideolibrary;AccountKey=1mfBm3q7x7USmH/gBWFEA1pIdgbj3UCNjdlo7umTKsqPOMx2EWXgNIl+a00MkcUamZTDK8q0nPicqUpBbeAOIQ==;EndpointSuffix=core.windows.net";
+            CloudStorageAccount storageAccount=CloudStorageAccount.Parse(connectionstring);
+         
+            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+            var blobContainer = blobClient.GetContainerReference(containername);
+
+          
+            BlobContinuationToken continuationToken = null;
+            List<IListBlobItem> results = new List<IListBlobItem>();
+            HttpResponseMessage message = new HttpResponseMessage(HttpStatusCode.OK); 
+
+            List<IListBlobItem> _tes = new List<
+            do
+            {
+                var response = await blobContainer.ListBlobsSegmentedAsync(continuationToken);
+                continuationToken = response.ContinuationToken;
+                results.AddRange(response.Results);
+            }
+            while (continuationToken != null);       
+ 
+            List<ResponseTypes> objResponseType = new List<ResponseTypes>();
+            ResponseTypes objRes;
+           
+            foreach(CloudBlockBlob re in results)
+            {
+             objRes = new ResponseTypes();
+            objRes.sample  = re.Name.ToString();
+            objRes.uri = re.Uri.ToString();
+            objRes.size =  re.Properties.Length.ToString();
+            if (objRes.uri.EndsWith(".mp4"))
+            objResponseType.Add(objRes);
+            }
+            
+            return new JsonResult(objResponseType);
+            //return new JsonResult("test");
+            
+        }
+
+------------------
+
+class ResponseTypes
+    {
+       public string sample ;
+        public string uri ;
+        public string size ;
+
+    }
